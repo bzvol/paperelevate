@@ -8,12 +8,6 @@ import org.bukkit.command.TabExecutor
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 
-// This class is a new version of Command class. It will implement almost the same things,
-// and also a builder class so developers do not need to make a new extension class for each command.
-// We do not use SubCommand class anymore, as it implements the exact same things as Command class,
-// the only difference was that Command has protected abstracts, while SubCommand has public open abstracts.
-// We will use Command2 class instead, which will have public [open] abstracts [with a default behavior].
-// The class will be renamed after migrating and safely removing the old Command class.
 abstract class Command2 private constructor(
     val name: String, private val playerOnly: Boolean = false,
     private var parentCommandString: String?,
@@ -22,7 +16,7 @@ abstract class Command2 private constructor(
     open val argParser: ArgParser?
 ) : TabExecutor {
     open val usage: String
-        get() = commandUsage ?: CommandUtil.buildUsage(pcsExt(parentCommandString, name), subCommands, argParser)
+        get() = commandUsage ?: CommandUtil.buildUsage(pcsExtRight(parentCommandString, name), subCommands, argParser)
 
     protected constructor(name: String, playerOnly: Boolean = false, parentCommandString: String? = null)
             : this(name, playerOnly, parentCommandString, null, emptyList(), null)
@@ -37,11 +31,7 @@ abstract class Command2 private constructor(
         alias: String,
         args: Array<String>
     ): Boolean {
-        if (playerOnly)
-            if (!sender.isPlayer) return true
-            else execute(sender as Player, args)
-        else execute(sender, args)
-
+        execute(sender, args)
         return true
     }
 
@@ -56,12 +46,19 @@ abstract class Command2 private constructor(
     }
 
     open fun execute(sender: CommandSender, args: Array<String>) {
-        if (args.isEmpty()) sender.sendUsage()
+        if (playerOnly)
+            if (!sender.isPlayer) return
+            else execute(sender as Player, args)
+        else if (args.isEmpty()) sender.sendUsage()
         else if (subCommands.isNotEmpty()) executeSubCommands(sender, args)
         else sender.sendUsage()
     }
 
-    open fun execute(sender: Player, args: Array<String>) = execute(sender as CommandSender, args)
+    open fun execute(sender: Player, args: Array<String>) {
+        if (args.isEmpty()) sender.sendUsage()
+        else if (subCommands.isNotEmpty()) executeSubCommands(sender, args)
+        else sender.sendUsage()
+    }
 
     open fun tabCompletions(sender: CommandSender, args: Array<String>, argIndex: Int): List<String> =
         if (subCommands.isEmpty())
@@ -93,6 +90,11 @@ abstract class Command2 private constructor(
         if (parentCommandString?.isNotBlank() == true) throw IllegalStateException("Cannot register subcommands")
         else plugin.getCommand(name)?.setExecutor(this)
 
+    private fun refreshAllPcs(addition: String) {
+        parentCommandString = pcsExtLeft(parentCommandString, addition)
+        subCommands.forEach { it.refreshAllPcs(addition) }
+    }
+
     class Builder private constructor(
         private val name: String,
         private val playerOnly: Boolean,
@@ -108,13 +110,13 @@ abstract class Command2 private constructor(
         fun usage(usage: String) = apply { this.usage = usage }
 
         fun subCommand(name: String, playerOnly: Boolean = false, init: Builder.() -> Unit) = apply {
-            val builder = Builder(name, playerOnly, pcsExt(parentCommandString, this.name)).apply(init)
+            val builder = Builder(name, playerOnly, pcsExtRight(parentCommandString, this.name)).apply(init)
             subCommands.add(builder.build())
         }
 
         fun subCommand(command: Command2) = apply {
-            val newPcs = pcsExt(parentCommandString, name)
-            subCommands.add(command.apply { parentCommandString = newPcs })
+            val newPcs = pcsExtRight(parentCommandString, name)
+            subCommands.add(command.apply { refreshAllPcs(newPcs) })
         }
 
         fun argParser(argParser: ArgParser) = apply { this.argParser = argParser }
@@ -144,6 +146,7 @@ abstract class Command2 private constructor(
         fun builder(name: String, playerOnly: Boolean = false, parentCommandString: String? = null) =
             Builder.builder(name, playerOnly, parentCommandString)
 
-        private fun pcsExt(pcs: String?, addition: String) = if (pcs == null) addition else "$pcs $addition"
+        private fun pcsExtRight(pcs: String?, addition: String) = if (pcs == null) addition else "$pcs $addition"
+        private fun pcsExtLeft(pcs: String?, addition: String) = if (pcs == null) addition else "$addition $pcs"
     }
 }

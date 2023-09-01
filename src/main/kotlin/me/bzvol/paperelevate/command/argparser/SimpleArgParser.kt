@@ -28,7 +28,7 @@ class SimpleArgParser : ArgParser {
     }
 
     override fun parse(args: Array<String>): Map<String, *> =
-        arguments.sortedBy { it.required }.mapIndexed { idx, arg ->
+        arguments.sortedByDescending { it.required }.mapIndexed { idx, arg ->
             val requiredArgs = arguments.filter { it.required }
             if (args.size < requiredArgs.size)
                 throw IllegalArgumentException("Not enough arguments provided. " +

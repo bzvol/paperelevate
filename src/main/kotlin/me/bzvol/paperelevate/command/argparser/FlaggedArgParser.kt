@@ -2,6 +2,7 @@ package me.bzvol.paperelevate.command.argparser
 
 class FlaggedArgParser : ArgParser {
     val arguments = mutableListOf<FlaggedArgument<out Any>>()
+    val flags by lazy { arguments.flatMap { listOf(it.shortFlag, it.longFlag) }.filterNotNull() }
 
     override val usage: String
         get() = arguments.joinToString(" ") { it.usage }
@@ -46,12 +47,11 @@ class FlaggedArgParser : ArgParser {
         arguments.add(FlaggedArgument<Boolean>(placeholder, shortFlag, longFlag, default = false))
     }
 
-    override fun parse(args: Array<String>): Map<String, *> =
-        arguments.sortedBy { it.required }.associate { arg ->
+    override fun parse(args: Array<String>): Map<String, *> = arguments.associate { arg ->
             val flagIdx = args.indexOfFirst { it == arg.shortFlag || it == arg.longFlag }
             if (flagIdx == -1) arg.placeholder to arg.parse(null)
             else if (arg.isBoolean) arg.placeholder to true
-            else arg.placeholder to arg.parse(args.getOrNull(flagIdx + 1))
+            else arg.placeholder to arg.parse(args.getOrNull(flagIdx + 1).let { if (it in flags) null else it })
         }
 
     fun tabCompletions(args: Array<String>): List<String> = arguments.map { it.shortFlag }.filter { it !in args }
