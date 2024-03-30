@@ -44,7 +44,8 @@ object CommandUtil {
             usage.append(
                 subCommands.joinToString(
                     "${UsageColors.otherColor}|${UsageColors.subCommandColor}",
-                    "${UsageColors.otherColor}<", "${UsageColors.otherColor}>"
+                    "${UsageColors.otherColor}<${UsageColors.subCommandColor}",
+                    "${UsageColors.otherColor}>"
                 ) { it.name }
             )
         }
