@@ -12,7 +12,10 @@ abstract class Argument<T : Any>(
     allowedValuesProvider: (() -> List<T>)?,
     protected val parser: ((String?) -> T?)?,
 ) {
-    protected val allowedValues: List<T>? by lazy(allowedValuesProvider ?: { null })
+    val allowedValues: List<T>? by lazy(allowedValuesProvider ?: {
+        @Suppress("UNCHECKED_CAST")
+        if (type == Boolean::class) listOf(true as T, false as T) else null
+    })
 
     open val usage: String
         get() = if (required) "${UsageColors.otherColor}<${UsageColors.argumentColor}$placeholder" +

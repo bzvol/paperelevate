@@ -37,4 +37,9 @@ class SimpleArgParser : ArgParser {
             arg.placeholder to arg.parse(args.getOrNull(idx))
         }.toMap()
     }
+
+    override fun tabCompletions(args: Array<String>, argIndex: Int): List<String> =
+        arguments.sortedByDescending { it.required }.getOrNull(argIndex)
+            ?.allowedValues?.map { it.toString() }?.filter { " " !in it }
+            ?: emptyList()
 }

@@ -62,9 +62,7 @@ abstract class Command2 private constructor(
 
     open fun tabCompletions(sender: CommandSender, args: Array<String>, argIndex: Int): List<String> =
         if (subCommands.isEmpty())
-            if (argParser is FlaggedArgParser)
-                (argParser as FlaggedArgParser).tabCompletions(args)
-            else emptyList()
+            argParser?.tabCompletions(args, argIndex) ?: emptyList()
         else
             if (argIndex == 0) subCommandNames
             else subCommandTabCompletions(sender, args, argIndex)
