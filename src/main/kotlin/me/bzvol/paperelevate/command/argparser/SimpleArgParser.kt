@@ -27,13 +27,14 @@ class SimpleArgParser : ArgParser {
         arguments.add(SimpleArgument<T>(placeholder, default = default, allowedValues = allowedValues, parser = parser))
     }
 
-    override fun parse(args: Array<String>): Map<String, *> =
-        arguments.sortedByDescending { it.required }.mapIndexed { idx, arg ->
-            val requiredArgs = arguments.filter { it.required }
-            if (args.size < requiredArgs.size)
-                throw IllegalArgumentException("Not enough arguments provided. " +
-                        "Required: ${requiredArgs.size}, provided: ${args.size}")
+    override fun parse(args: Array<String>): Map<String, *> {
+        val requiredArgs = arguments.filter { it.required }
+        if (args.size < requiredArgs.size)
+            throw IllegalArgumentException("Not enough arguments provided. " +
+                    "Required: ${requiredArgs.size}, provided: ${args.size}")
 
+        return arguments.sortedByDescending { it.required }.mapIndexed { idx, arg ->
             arg.placeholder to arg.parse(args.getOrNull(idx))
         }.toMap()
+    }
 }
