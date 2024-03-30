@@ -14,7 +14,7 @@ class SimpleArgument<T : Any>(
     companion object {
         inline operator fun <reified T : Any> invoke(
             placeholder: String, default: T? = null,
-            required: Boolean = false, allowNull: Boolean = false,
+            required: Boolean = false, allowNull: Boolean = true,
             noinline allowedValues: (() -> List<T>)? = null,
             noinline parser: ((String?) -> T?)? = null,
         ): SimpleArgument<T> = SimpleArgument(
