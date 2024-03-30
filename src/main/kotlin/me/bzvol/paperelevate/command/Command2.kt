@@ -2,7 +2,6 @@ package me.bzvol.paperelevate.command
 
 import me.bzvol.paperelevate.command.CommandUtil.isPlayer
 import me.bzvol.paperelevate.command.argparser.ArgParser
-import me.bzvol.paperelevate.command.argparser.FlaggedArgParser
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabExecutor
 import org.bukkit.entity.Player
@@ -13,13 +12,14 @@ abstract class Command2 private constructor(
     private var parentCommandString: String?,
     private val commandUsage: String?,
     open val subCommands: List<Command2>,
-    open val argParser: ArgParser?
+    open val argParser: ArgParser?,
+    open val permission: String?
 ) : TabExecutor {
     open val usage: String
         get() = commandUsage ?: CommandUtil.buildUsage(pcsExtRight(parentCommandString, name), subCommands, argParser)
 
     protected constructor(name: String, playerOnly: Boolean = false, parentCommandString: String? = null)
-            : this(name, playerOnly, parentCommandString, null, emptyList(), null)
+            : this(name, playerOnly, parentCommandString, null, emptyList(), null, null)
 
     protected val subCommandNames: List<String> by lazy {
         subCommands.map { it.name }
@@ -31,7 +31,14 @@ abstract class Command2 private constructor(
         alias: String,
         args: Array<String>
     ): Boolean {
-        execute(sender, args)
+        if (!permission.isNullOrBlank() && !sender.hasPermission(permission!!))
+            sender.sendMessage(
+                (if (sender.isPlayer) "§c" else "") + "You do not have permission to execute this command."
+            )
+        else if (playerOnly)
+            if (!sender.isPlayer) sender.sendMessage("This command can only be executed by a player.")
+            else execute(sender as Player, args)
+
         return true
     }
 
@@ -46,19 +53,12 @@ abstract class Command2 private constructor(
     }
 
     open fun execute(sender: CommandSender, args: Array<String>) {
-        if (playerOnly)
-            if (!sender.isPlayer) return
-            else execute(sender as Player, args)
-        else if (args.isEmpty()) sender.sendUsage()
-        else if (subCommands.isNotEmpty()) executeSubCommands(sender, args)
-        else sender.sendUsage()
-    }
-
-    open fun execute(sender: Player, args: Array<String>) {
         if (args.isEmpty()) sender.sendUsage()
         else if (subCommands.isNotEmpty()) executeSubCommands(sender, args)
         else sender.sendUsage()
     }
+
+    open fun execute(sender: Player, args: Array<String>) = execute(sender as CommandSender, args)
 
     open fun tabCompletions(sender: CommandSender, args: Array<String>, argIndex: Int): List<String> =
         if (subCommands.isEmpty())
@@ -101,6 +101,7 @@ abstract class Command2 private constructor(
         private var usage: String? = null
         private var subCommands: MutableList<Command2> = mutableListOf()
         private var argParser: ArgParser? = null
+        private var permission: String? = null
 
         private var action: (Command2.(CommandSender, Array<String>) -> Unit)? = null
         private var playerAction: (Command2.(Player, Array<String>) -> Unit)? = null
@@ -119,18 +120,21 @@ abstract class Command2 private constructor(
 
         fun argParser(argParser: ArgParser) = apply { this.argParser = argParser }
 
+        fun permission(permission: String) = apply { this.permission = permission }
+
         fun action(action: Command2.(CommandSender, Array<String>) -> Unit) = apply { this.action = action }
 
         @JvmName("playerAction")
         fun action(action: Command2.(Player, Array<String>) -> Unit) = apply { this.playerAction = action }
 
-        fun build() = object : Command2(name, playerOnly, parentCommandString, usage, subCommands, argParser) {
-            override fun execute(sender: CommandSender, args: Array<String>) =
-                action?.invoke(this, sender, args) ?: super.execute(sender, args)
+        fun build() =
+            object : Command2(name, playerOnly, parentCommandString, usage, subCommands, argParser, permission) {
+                override fun execute(sender: CommandSender, args: Array<String>) =
+                    action?.invoke(this, sender, args) ?: super.execute(sender, args)
 
-            override fun execute(sender: Player, args: Array<String>) =
-                playerAction?.invoke(this, sender, args) ?: super.execute(sender, args)
-        }
+                override fun execute(sender: Player, args: Array<String>) =
+                    playerAction?.invoke(this, sender, args) ?: super.execute(sender, args)
+            }
 
         fun buildAndRegister(plugin: JavaPlugin) = build().apply { register(plugin) }
 

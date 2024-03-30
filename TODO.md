@@ -6,5 +6,5 @@
 - [x] P2: Make allowed values providable
 - [x] P1: Fix NullPointerException in ArgParser
 - [x] P1: Add allowed values to tab completions
-- [ ] P1: Permissions (for subcommands)
+- [x] P1: Permissions (for subcommands)
 - [ ] P4: Implement `MixedArgParser` class
