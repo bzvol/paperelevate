@@ -1,5 +1,6 @@
 package me.bzvol.paperelevate.command
 
+import me.bzvol.paperelevate.PaperElevate
 import me.bzvol.paperelevate.command.CommandUtil.isPlayer
 import me.bzvol.paperelevate.command.argparser.ArgParser
 import org.bukkit.command.CommandSender
@@ -35,9 +36,7 @@ abstract class Command2 private constructor(
             sender.sendMessage(
                 (if (sender.isPlayer) "§c" else "") + "You do not have permission to execute this command."
             )
-        else if (playerOnly)
-            if (!sender.isPlayer) sender.sendMessage("This command can only be executed by a player.")
-            else execute(sender as Player, args)
+        else execute(sender, args)
 
         return true
     }
@@ -53,12 +52,19 @@ abstract class Command2 private constructor(
     }
 
     open fun execute(sender: CommandSender, args: Array<String>) {
-        if (args.isEmpty()) sender.sendUsage()
+        if (playerOnly)
+            if (!sender.isPlayer) return
+            else execute(sender as Player, args)
+        else if (args.isEmpty()) sender.sendUsage()
         else if (subCommands.isNotEmpty()) executeSubCommands(sender, args)
         else sender.sendUsage()
     }
 
-    open fun execute(sender: Player, args: Array<String>) = execute(sender as CommandSender, args)
+    open fun execute(sender: Player, args: Array<String>) {
+        if (args.isEmpty()) sender.sendUsage()
+        else if (subCommands.isNotEmpty()) executeSubCommands(sender, args)
+        else sender.sendUsage()
+    }
 
     open fun tabCompletions(sender: CommandSender, args: Array<String>, argIndex: Int): List<String> =
         if (subCommands.isEmpty())
@@ -133,7 +139,9 @@ abstract class Command2 private constructor(
                     action?.invoke(this, sender, args) ?: super.execute(sender, args)
 
                 override fun execute(sender: Player, args: Array<String>) =
-                    playerAction?.invoke(this, sender, args) ?: super.execute(sender, args)
+                     playerAction?.invoke(this, sender, args)
+                         ?: action?.invoke(this, sender, args)
+                         ?: super.execute(sender, args)
             }
 
         fun buildAndRegister(plugin: JavaPlugin) = build().apply { register(plugin) }

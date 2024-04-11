@@ -7,4 +7,5 @@
 - [x] P1: Fix NullPointerException in ArgParser
 - [x] P1: Add allowed values to tab completions
 - [x] P1: Permissions (for subcommands)
+- [ ] P2: Fix player only bug (in CommandUtil)
 - [ ] P4: Implement `MixedArgParser` class
